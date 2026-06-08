@@ -26,6 +26,8 @@ namespace barnack::window
 		icon(icon&& move) noexcept;
 		icon& operator=(icon&& move) noexcept;
 
+		void assign_to(const handle_observer& handle) const noexcept;
+
 		bool is_open() const noexcept;
 		};
 

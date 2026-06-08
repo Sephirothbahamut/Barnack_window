@@ -2,6 +2,7 @@
 
 #include "../handle_wrapper.h"
 #include "../icon.h"
+#include "../style.h"
 
 #include <functional>
 
@@ -60,7 +61,7 @@ namespace barnack::window
 	struct base : handle_owner
 		{
 		base() noexcept;
-		base(void* system_window_handle) noexcept;
+		base(HWND system_window_handle) noexcept;
 		base(base&& move) noexcept;
 		base& operator=(base&& move) noexcept;
 
@@ -68,20 +69,6 @@ namespace barnack::window
 
 		bool poll_event() const;
 		void wait_event() const;
-
-		
-		struct style_proxy
-			{
-			friend class base;
-
-			void set_icon(const window::icon& icon) noexcept;
-
-			private:
-				style_proxy(base& base) noexcept;
-				base& base;
-			};
-
-		[[nodiscard]] style_proxy style() noexcept;
 		};
 
 	struct factory
@@ -100,6 +87,10 @@ namespace barnack::window
 		std::optional<utils::math::vec2l> minimum_size;
 
 		callbacks callbacks;
+
+		std::optional<style> style;
+
+		std::optional<icon> icon;
 
 		base create();
 		};

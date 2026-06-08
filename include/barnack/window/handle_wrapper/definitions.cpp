@@ -3,88 +3,84 @@
 
 #include <utils/string.h>
 #include <utils/MS/raw/cast.h>
-#include <utils/MS/window/details/DWM.h>
+#include "../style/DWM.h"
 
 namespace barnack::window
 	{
-	handle_observer::pimpl_t::pimpl_t() noexcept : pimpl_t{nullptr} {}
-	handle_observer::pimpl_t::pimpl_t(HWND handle) noexcept : handle{handle} {}
+	handle_observer::handle_observer() noexcept = default;
 
-	handle_observer::pimpl_t::pimpl_t(pimpl_t&& move) noexcept : pimpl_t{move.handle} { move.handle = nullptr; }
-	handle_observer::pimpl_t& handle_observer::pimpl_t::operator=(pimpl_t&& move) noexcept 
+	handle_observer::handle_observer(HWND system_window_handle) noexcept : handle{system_window_handle}
 		{
-		destroy_window_if_exists();
-		handle = move.handle; 
-		move.handle = nullptr; 
+		}
+
+	handle_observer::~handle_observer()
+		{
+		}
+
+	HWND handle_observer::get() const noexcept
+		{
+		return handle;
+		}
+
+	HWND handle_observer::release() noexcept
+		{
+		HWND ret{handle};
+		handle = nullptr;
+		return ret;
+		}
+
+	handle_observer::handle_observer(handle_observer&& move) noexcept : handle{move.handle} 
+		{
+		move.handle = nullptr;
+		}
+
+	handle_observer& handle_observer::operator=(handle_observer&& move) noexcept
+		{
+		handle = move.handle;
+		move.handle = nullptr;
 		return *this;
 		}
-	handle_observer::pimpl_t::~pimpl_t() {}
 
-	void handle_observer::pimpl_t::destroy_window_if_exists() noexcept
+	handle_observer handle_owner::release() noexcept
 		{
-		if (handle) 
+		HWND hwnd{handle};
+		handle = nullptr;
+		return handle_observer{hwnd};
+		}
+
+	bool handle_observer::is_open() const noexcept { return handle; }
+	void handle_observer::close  ()       noexcept 
+		{
+		if (handle)
 			{
 			::DestroyWindow(handle);
 			handle = nullptr;
 			}
 		}
 
-	handle_observer::handle_observer(void* system_window_handle) noexcept : handle_observer{}
-		{
-		pimpl().handle = reinterpret_cast<HWND>(system_window_handle);
-		}
-
-	handle_observer::handle_observer() noexcept
-		{
-		static_assert(sizeof(handle_observer::pimpl_t) == sizeof(pimpl_storage));
-		new (pimpl_storage.data()) handle_observer::pimpl_t;
-		}
-	handle_observer::~handle_observer()
-		{
-		pimpl().~pimpl_t();
-		}
-
-	const handle_observer::pimpl_t& handle_observer::pimpl() const noexcept { return *std::launder(reinterpret_cast<const pimpl_t*>(pimpl_storage.data())); }
-	      handle_observer::pimpl_t& handle_observer::pimpl()       noexcept { return *std::launder(reinterpret_cast<      pimpl_t*>(pimpl_storage.data())); }
-
-
-
-	handle_observer::handle_observer           (handle_observer&& move) noexcept { pimpl() = std::move(move.pimpl()); }
-	handle_observer& handle_observer::operator=(handle_observer&& move) noexcept { pimpl() = std::move(move.pimpl()); return *this; }
-
-
-
-
-
-
-
-
-	bool handle_observer::is_open() const noexcept { return pimpl().handle; }
-	void handle_observer::close  ()       noexcept { pimpl().destroy_window_if_exists(); }
-
 	void handle_observer::show() noexcept
 		{
-		::SetWindowPos(pimpl().handle, nullptr, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
-		::ShowWindow(pimpl().handle, SW_SHOW);
+		::SetWindowPos(handle, nullptr, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
+		::ShowWindow(handle, SW_SHOW);
 		}
 
-	void handle_observer::minimize() noexcept { ::ShowWindow(pimpl().handle, SW_MINIMIZE); }
-	void handle_observer::maximize() noexcept { ::ShowWindow(pimpl().handle, SW_MAXIMIZE); }
-	void handle_observer::restore () noexcept { ::ShowWindow(pimpl().handle, SW_RESTORE ); }
+	void handle_observer::minimize() noexcept { ::ShowWindow(handle, SW_MINIMIZE); }
+	void handle_observer::maximize() noexcept { ::ShowWindow(handle, SW_MAXIMIZE); }
+	void handle_observer::restore () noexcept { ::ShowWindow(handle, SW_RESTORE ); }
 
 	bool handle_observer::is_visible  () const noexcept
 		{
 		bool is_cloaked{false};
-		DwmGetWindowAttribute(pimpl().handle, DWMWA_CLOAKED, &is_cloaked, sizeof(is_cloaked));
-		return IsWindowVisible(pimpl().handle) && !is_cloaked && !is_minimized();
+		DwmGetWindowAttribute(handle, DWMWA_CLOAKED, &is_cloaked, sizeof(is_cloaked));
+		return IsWindowVisible(handle) && !is_cloaked && !is_minimized();
 		}
 
-	bool handle_observer::is_minimized() const noexcept { return IsIconic(pimpl().handle); }
-	bool handle_observer::is_maximized() const noexcept { return IsZoomed(pimpl().handle); }
+	bool handle_observer::is_minimized() const noexcept { return IsIconic(handle); }
+	bool handle_observer::is_maximized() const noexcept { return IsZoomed(handle); }
 
 	handle_observer handle_observer::parent() const noexcept
 		{
-		return {GetParent(pimpl().handle)};
+		return {GetParent(handle)};
 		}
 
 	utils::math::padding<long> handle_observer::rect_shadows_padding() const noexcept
@@ -92,8 +88,8 @@ namespace barnack::window
 		RECT exclude_shadow;
 		RECT include_shadow;
 
-		DwmGetWindowAttribute(pimpl().handle, DWMWA_EXTENDED_FRAME_BOUNDS, &exclude_shadow, sizeof(RECT));
-		GetWindowRect(pimpl().handle, &include_shadow);
+		DwmGetWindowAttribute(handle, DWMWA_EXTENDED_FRAME_BOUNDS, &exclude_shadow, sizeof(RECT));
+		GetWindowRect(handle, &include_shadow);
 
 		return
 			{
@@ -114,12 +110,12 @@ namespace barnack::window
 	utils::math::rect_l handle_observer::rect_window() const noexcept
 		{
 		RECT rect_win32;
-		if (DwmGetWindowAttribute(pimpl().handle, DWMWA_EXTENDED_FRAME_BOUNDS, &rect_win32, sizeof(RECT)) == S_OK)
+		if (DwmGetWindowAttribute(handle, DWMWA_EXTENDED_FRAME_BOUNDS, &rect_win32, sizeof(RECT)) == S_OK)
 			{
 			//Equivalent to using unpack_window_size on GetWindowRect
 			return utils::MS::cast(rect_win32);
 			}
-		else if (GetWindowRect(pimpl().handle, &rect_win32))
+		else if (GetWindowRect(handle, &rect_win32))
 			{
 			return utils::MS::cast(rect_win32);
 			}
@@ -132,7 +128,7 @@ namespace barnack::window
 
 	void handle_observer::rect_window(const utils::math::rect_l& rect) noexcept
 		{
-		SetWindowPos(pimpl().handle, NULL, rect.ll(), rect.up(), rect.width(), rect.height(), SWP_NOZORDER);
+		SetWindowPos(handle, NULL, rect.ll(), rect.up(), rect.width(), rect.height(), SWP_NOZORDER);
 		}
 
 	utils::math::rect_l handle_observer::rect_full() const noexcept
@@ -148,7 +144,7 @@ namespace barnack::window
 	utils::math::rect_l handle_observer::rect_client() const noexcept
 		{
 		RECT rect;
-		GetClientRect(pimpl().handle, &rect);//TODO error case
+		GetClientRect(handle, &rect);//TODO error case
 		return utils::MS::cast(rect);
 		}
 
@@ -157,25 +153,25 @@ namespace barnack::window
 		RECT rectangle{utils::MS::cast(rect)};
 
 		// Updates the rect to take into account border/title bar if present
-		AdjustWindowRectEx(&rectangle, static_cast<DWORD>(GetWindowLongPtr(pimpl().handle, GWL_STYLE)), false, static_cast<DWORD>(GetWindowLongPtr(pimpl().handle, GWL_EXSTYLE)));
+		AdjustWindowRectEx(&rectangle, static_cast<DWORD>(GetWindowLongPtr(handle, GWL_STYLE)), false, static_cast<DWORD>(GetWindowLongPtr(handle, GWL_EXSTYLE)));
 
 		long width {rectangle.right  - rectangle.left};
 		long height{rectangle.bottom - rectangle.top};
 
-		SetWindowPos(pimpl().handle, NULL, rectangle.left, rectangle.top, width, height, SWP_NOZORDER);
+		SetWindowPos(handle, NULL, rectangle.left, rectangle.top, width, height, SWP_NOZORDER);
 		}
 
 	utils::math::vec2l handle_observer::screen_space_to_client_space(const utils::math::vec2l& coords) const noexcept
 		{
 		POINT output{coords.x(), coords.y()};
-		ScreenToClient(pimpl().handle, std::addressof(output));
+		ScreenToClient(handle, std::addressof(output));
 		return {output.x, output.y};
 		}
 
 	utils::math::vec2l handle_observer::client_space_to_screen_space(const utils::math::vec2l& coords) const noexcept
 		{
 		POINT output{coords.x(), coords.y()};
-		ClientToScreen(pimpl().handle, std::addressof(output));
+		ClientToScreen(handle, std::addressof(output));
 		return {output.x, output.y};
 		}
 
@@ -198,29 +194,32 @@ namespace barnack::window
 		}
 	
 	handle_owner::handle_owner           (handle_owner&& move) noexcept = default;
-	handle_owner& handle_owner::operator=(handle_owner&& move) noexcept = default;
+	handle_owner& handle_owner::operator=(handle_owner&& move) noexcept
+		{
+		close();
+		handle_observer::operator=(std::move(move));
+		return *this;
+		}
 	handle_owner::~handle_owner()
 		{
-		pimpl().destroy_window_if_exists();
+		close();
 		}
 
-	handle_observer handle_owner::release() noexcept
-		{
-		HWND handle{pimpl().handle};
-		pimpl().handle = nullptr;
-		return handle_observer{handle};
-		}
+
+
+
+
 
 
 	static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 		{
-		HWND p{FindWindowEx(hwnd, NULL, L"SHELLDLL_DefView", NULL)};
+		HWND p{FindWindowExW(hwnd, NULL, L"SHELLDLL_DefView", NULL)};
 		HWND* ret{reinterpret_cast<HWND*>(lParam)};
 
 		if (p)
 			{
 			// Gets the WorkerW Window after the current one.
-			*ret = FindWindowEx(NULL, hwnd, L"WorkerW", NULL);
+			*ret = FindWindowExW(NULL, hwnd, L"WorkerW", NULL);
 			}
 		return true;
 		}
@@ -228,7 +227,7 @@ namespace barnack::window
 	handle_observer find_desktop_wallpaper() noexcept
 		{
 		// Fetch the Progman window
-		HWND progman{FindWindow(L"ProgMan", NULL)};
+		HWND progman{FindWindowW(L"ProgMan", NULL)};
 		// Send 0x052C to Progman. This message directs Progman to spawn a 
 		// WorkerW behind the desktop icons. If it is already there, nothing 
 		// happens.

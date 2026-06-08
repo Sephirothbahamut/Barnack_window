@@ -78,7 +78,14 @@ namespace barnack::window
 	icon::icon           (icon&& move) noexcept { pimpl() = std::move(move.pimpl()); }
 	icon& icon::operator=(icon&& move) noexcept { pimpl() = std::move(move.pimpl()); return *this; }
 
-
+	void icon::assign_to(const handle_observer& window) const noexcept
+		{
+		if (pimpl().handle)
+			{
+			SendMessageW(window.get(), WM_SETICON, ICON_BIG  , reinterpret_cast<LPARAM>(pimpl().handle));
+			SendMessageW(window.get(), WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(pimpl().handle));
+			}
+		}
 
 
 

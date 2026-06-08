@@ -24,6 +24,8 @@ namespace barnack::window
 						return 0;
 						}
 					}
+				window_instance.close();
+				return 0;
 				} break;
 			case WM_NCHITTEST:
 				{

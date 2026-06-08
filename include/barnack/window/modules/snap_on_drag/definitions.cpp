@@ -1,7 +1,6 @@
 #include "public.h"
 
 #include <utils/MS/raw/cast.h>
-#include <utils/MS/window/details/DWM.h>
 
 #include "../../handle_wrapper/exposed_MS.h"
 
@@ -21,11 +20,11 @@ namespace barnack::window::module
 
 		window::handle_observer wrapped{hwnd};
 
-		bool different{caller_hwnd != wrapped.pimpl().handle};
+		bool different{caller_hwnd != wrapped.get()};
 		bool visible{wrapped.is_visible()};
-		bool parentless{!wrapped.parent().pimpl().handle};
+		bool parentless{!wrapped.parent().get()};
 
-		if (caller_hwnd != wrapped.pimpl().handle && wrapped.is_visible() && parentless)
+		if (caller_hwnd != wrapped.get() && wrapped.is_visible() && parentless)
 			{
 			rects.push_back(wrapped.rect_window());
 			}
@@ -59,7 +58,7 @@ namespace barnack::window::module
 
 	void snap_on_drag::move_begin(window::base& window) noexcept
 		{
-		get_windows(window.pimpl().handle, existing_windows_rects);
+		get_windows(window.get(), existing_windows_rects);
 		target = result_previous = window.rect_window();
 		}
 

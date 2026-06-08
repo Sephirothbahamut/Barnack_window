@@ -5,22 +5,22 @@
 #include <utils/math/rect.h>
 #include <utils/oop/disable_move_copy.h>
 
+struct HWND__;
+using HWND = HWND__*;
+
 namespace barnack::window
 	{
 	struct handle_observer : utils::oop::non_copyable
 		{
-		using handle_t = void*;
-
-		struct pimpl_t;
-		const pimpl_t& pimpl() const noexcept;
-		      pimpl_t& pimpl()       noexcept;
-		alignas(void*) std::array<std::byte, sizeof(void*)> pimpl_storage;
-
-		handle_observer(void* system_window_handle) noexcept;
+		handle_observer(HWND system_window_handle) noexcept;
 		handle_observer() noexcept;
 		~handle_observer();
 		handle_observer(handle_observer&& move) noexcept;
 		handle_observer& operator=(handle_observer&& move) noexcept;
+
+		HWND get() const noexcept;
+		HWND release() noexcept;
+		void destroy() noexcept;
 
 		bool is_open() const noexcept;
 		void close  ()       noexcept;
@@ -60,6 +60,9 @@ namespace barnack::window
 		utils::math::vec2l  client_space_to_screen_space(const utils::math::vec2l & coords) const noexcept;
 		utils::math::rect_l screen_space_to_client_space(const utils::math::rect_l& rect  ) const noexcept;
 		utils::math::rect_l client_space_to_screen_space(const utils::math::rect_l& rect  ) const noexcept;
+
+		protected:
+			HWND handle;
 		};
 
 	struct handle_owner : handle_observer
